@@ -755,7 +755,6 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
                    password:(nullable NSString *)password
                         AES:(BOOL)aes
             progressHandler:(BOOL(^ _Nullable)(NSUInteger entryNumber, NSUInteger total))progressHandler {
-    
     SSZipArchive *zipArchive = [[SSZipArchive alloc] initWithPath:path];
     BOOL success = [zipArchive open];
     if (success) {
@@ -774,6 +773,73 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
             if (keepParentDirectory) {
                 fileName = [directoryPath.lastPathComponent stringByAppendingPathComponent:fileName];
             }
+            
+            BOOL isDir;
+            [fileManager fileExistsAtPath:fullFilePath isDirectory:&isDir];
+            if (!isDir) {
+                // file
+                success &= [zipArchive writeFileAtPath:fullFilePath withFileName:fileName compressionLevel:compressionLevel password:password AES:aes];
+            } else {
+                // directory
+                if (![fileManager enumeratorAtPath:fullFilePath].nextObject) {
+                    // empty directory
+                    success &= [zipArchive writeFolderAtPath:fullFilePath withFolderName:fileName withPassword:password];
+                }
+            }
+            if (progressHandler) {
+                complete++;
+                if (progressHandler(complete, total) == NO) {
+                    success = NO;
+                    break;
+                }
+            }
+        }
+        success &= [zipArchive close];
+    }
+    return success;
+}
+
++ (BOOL)createZipFileAtPath:(NSString *)path
+        withContentsOfItems:(NSArray <NSString *> *)itemPaths
+           compressionLevel:(int)compressionLevel
+                   password:(nullable NSString *)password
+                        AES:(BOOL)aes
+            progressHandler:(BOOL(^ _Nullable)(NSUInteger entryNumber, NSUInteger total))progressHandler
+{
+    SSZipArchive *zipArchive = [[SSZipArchive alloc] initWithPath:path];
+    BOOL success = [zipArchive open];
+    if (success) {
+        // use a local fileManager (queue/thread compatibility)
+        NSFileManager *fileManager = [[NSFileManager alloc] init];
+        NSMutableArray <NSArray <NSString *> *> *allObjectPairs = [[NSMutableArray alloc] init];
+        
+        for (NSString *itemPath in itemPaths) {
+            BOOL isDir0;
+            [fileManager fileExistsAtPath:itemPath isDirectory:&isDir0];
+            
+            if (isDir0) {
+                NSString *directoryPath = itemPath;
+                NSDirectoryEnumerator *dirEnumerator = [fileManager enumeratorAtPath:directoryPath];
+                for (__strong NSString *fileName in dirEnumerator.allObjects) {
+                    NSString *fullFilePath = [directoryPath stringByAppendingPathComponent:fileName];
+                    fileName = [directoryPath.lastPathComponent stringByAppendingPathComponent:fileName];
+                    [allObjectPairs addObject:@[ fullFilePath, fileName ]];
+                }
+            } else {
+                NSString *filePath = itemPath;
+                [allObjectPairs addObject:@[ filePath, filePath.lastPathComponent ]];
+            }
+            
+        }
+        
+        NSUInteger total = allObjectPairs.count, complete = 0;
+        if (!total) {
+            allObjectPairs = [@[@""] mutableCopy];
+            total = 1;
+        }
+        for (__strong NSArray <NSString *> *filePair in allObjectPairs) {
+            NSString *fullFilePath = filePair[0];
+            NSString *fileName = filePair[1];
             
             BOOL isDir;
             [fileManager fileExistsAtPath:fullFilePath isDirectory:&isDir];
