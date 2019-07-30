@@ -744,7 +744,7 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
     withContentsOfDirectory:(NSString *)directoryPath
         keepParentDirectory:(BOOL)keepParentDirectory
                withPassword:(nullable NSString *)password
-         andProgressHandler:(BOOL(^ _Nullable)(NSUInteger entryNumber, NSUInteger total))progressHandler {
+         andProgressHandler:(BOOL(^ _Nullable)(NSString *entry, NSUInteger entryNumber, NSUInteger total))progressHandler {
     return [self createZipFileAtPath:path withContentsOfDirectory:directoryPath keepParentDirectory:keepParentDirectory compressionLevel:Z_DEFAULT_COMPRESSION password:password AES:YES progressHandler:progressHandler];
 }
 
@@ -754,7 +754,7 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
            compressionLevel:(int)compressionLevel
                    password:(nullable NSString *)password
                         AES:(BOOL)aes
-            progressHandler:(BOOL(^ _Nullable)(NSUInteger entryNumber, NSUInteger total))progressHandler {
+            progressHandler:(BOOL(^ _Nullable)(NSString *entry, NSUInteger entryNumber, NSUInteger total))progressHandler {
     SSZipArchive *zipArchive = [[SSZipArchive alloc] initWithPath:path];
     BOOL success = [zipArchive open];
     if (success) {
@@ -788,7 +788,7 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
             }
             if (progressHandler) {
                 complete++;
-                if (progressHandler(complete, total) == NO) {
+                if (progressHandler(fullFilePath, complete, total) == NO) {
                     success = NO;
                     break;
                 }
@@ -804,7 +804,7 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
            compressionLevel:(int)compressionLevel
                    password:(nullable NSString *)password
                         AES:(BOOL)aes
-            progressHandler:(BOOL(^ _Nullable)(NSUInteger entryNumber, NSUInteger total))progressHandler
+            progressHandler:(BOOL(^ _Nullable)(NSString *entry, NSUInteger entryNumber, NSUInteger total))progressHandler
 {
     SSZipArchive *zipArchive = [[SSZipArchive alloc] initWithPath:path];
     BOOL success = [zipArchive open];
@@ -855,7 +855,7 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
             }
             if (progressHandler) {
                 complete++;
-                if (progressHandler(complete, total) == NO) {
+                if (progressHandler(fullFilePath, complete, total) == NO) {
                     success = NO;
                     break;
                 }
