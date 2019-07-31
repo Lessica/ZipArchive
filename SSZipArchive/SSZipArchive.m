@@ -820,23 +820,21 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
             if (isDir0) {
                 NSString *directoryPath = itemPath;
                 NSDirectoryEnumerator *dirEnumerator = [fileManager enumeratorAtPath:directoryPath];
+                if (!dirEnumerator.nextObject) {
+                    [allObjectPairs addObject:@[ directoryPath, directoryPath.lastPathComponent ]];
+                }
                 for (__strong NSString *fileName in dirEnumerator.allObjects) {
                     NSString *fullFilePath = [directoryPath stringByAppendingPathComponent:fileName];
                     fileName = [directoryPath.lastPathComponent stringByAppendingPathComponent:fileName];
                     [allObjectPairs addObject:@[ fullFilePath, fileName ]];
                 }
             } else {
-                NSString *filePath = itemPath;
-                [allObjectPairs addObject:@[ filePath, filePath.lastPathComponent ]];
+                [allObjectPairs addObject:@[ itemPath, itemPath.lastPathComponent ]];
             }
             
         }
         
         NSUInteger total = allObjectPairs.count, complete = 0;
-        if (!total) {
-            allObjectPairs = [@[@""] mutableCopy];
-            total = 1;
-        }
         for (__strong NSArray <NSString *> *filePair in allObjectPairs) {
             NSString *fullFilePath = filePair[0];
             NSString *fileName = filePair[1];
